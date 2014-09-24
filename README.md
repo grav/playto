@@ -12,7 +12,7 @@ Ex:
 
 #### Motivation
 
-I fought long and hard to get either VLC and MPlayer to output to a certain audio device, but eventually I gave up and wrote my own audio player.
+I fought long and hard to get either VLC and MPlayer to output to a certain audio device via the command line, but eventually I gave up and wrote my own audio player.
 
 #### Credits
 
