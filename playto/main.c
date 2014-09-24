@@ -141,7 +141,7 @@ int numChannels(AudioDeviceID deviceID, bool inputChannels){
 }
 
 
-AudioDeviceID getOutputDevice(char *outputName) {
+void printOutputDevices() {
     UInt32 propsize;
 
        AudioObjectPropertyAddress theAddress = { kAudioHardwarePropertyDevices,
@@ -153,19 +153,16 @@ AudioDeviceID getOutputDevice(char *outputName) {
    	AudioDeviceID *devids = malloc(sizeof(AudioDeviceID) * nDevices); // propsize
     CheckError(AudioObjectGetPropertyData(kAudioObjectSystemObject, &theAddress, 0, NULL, &propsize, devids),"AudioObjectGetPropertyData failed");
 
-    AudioDeviceID deviceID = 0;
    	for (int i = 0; i < nDevices; ++i) {
         AudioDeviceID testId = devids[i];
         char name[64];
         getDeviceName(testId, name, 64);
-        if(numChannels(testId, false) && strcmp(outputName, name) == 0) {
-        deviceID = testId;
-            break;
+        if(numChannels(testId, false)) {
+            printf("%s\n",name);
         }
    	}
 
    	free(devids);
-    return deviceID;
 }
 
 double PrepareFileAU(MyAUGraphPlayer *player)
@@ -221,56 +218,9 @@ double PrepareFileAU(MyAUGraphPlayer *player)
 int	main(int argc, const char *argv[])
 {
 
-    AudioDeviceID deviceId = 0;
-    if(argc<2){
-        printf("playto - audio player that can output to a certain device.\n");
-        printf("Usage: playto filename [output device name].\n");
-        printf("Ex: playto /path/to/foo.mp3 My\\ Nice\\ Sound\\ Card\n");
-        return -1;
-    }
+    printOutputDevices();
 
-
-    if(argc>2){
-        deviceId = getOutputDevice((char *) argv[2]);
-    }
-
-    CFStringRef file = CFStringCreateWithCString(NULL, argv[1], kCFStringEncodingUTF8);
-
-	CFURLRef inputFileURL = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, file, kCFURLPOSIXPathStyle, false);
- 	MyAUGraphPlayer player = {0};
-	
-	// open the input audio file
-	CheckError(AudioFileOpenURL(inputFileURL, kAudioFileReadPermission, 0, &player.inputFile),
-			   "AudioFileOpenURL failed");
-	CFRelease(inputFileURL);
-	
-	// get the audio data format from the file
-	UInt32 propSize = sizeof(player.inputFormat);
-	CheckError(AudioFileGetProperty(player.inputFile, kAudioFilePropertyDataFormat,
-									&propSize, &player.inputFormat),
-			   "couldn't get file's data format");
-	
-	// build a basic fileplayer->speakers graph
-	CreateMyAUGraph(&player, deviceId);
-
-
-	// configure the file player
-	Float64 fileDuration = PrepareFileAU(&player);
-	
-	// start playing
-	CheckError(AUGraphStart(player.graph),
-			   "AUGraphStart failed");
-	
-	// sleep until the file is finished
-	usleep ((useconds_t) (fileDuration * 1000.0 * 1000.0));
-	
-cleanup:
-	AUGraphStop (player.graph);
-	AUGraphUninitialize (player.graph);
-	AUGraphClose(player.graph);
-	AudioFileClose(player.inputFile);
-	
-	return 0;
+    return 0;
 }
 
 void SetOutput(MyAUGraphPlayer *player, AUNode outputNode, AudioDeviceID deviceId) {
